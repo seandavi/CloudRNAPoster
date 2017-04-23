@@ -1,0 +1,66 @@
+\documentclass[final]{beamer}
+\usetheme{SD}
+\usepackage[orientation=landscape,size=custom,width=160,height=90,scale=1.9,debug]{beamerposter}
+%\usepackage[absolute,overlay]{textpos}
+%\setlength{\TPHorizModule}{1cm}
+%\setlength{\TPVertModule}{1cm}
+
+\title{Cloud-Scale Gene Expression Quantification Of Thousands Of Rna-Seq Samples}
+\author{Sean Davis}
+\footer{More information at \texttt{\url{http://bioconductor.org/}}}
+\date{April 24, 2017}
+
+\begin{document}
+\begin{frame}[t]
+  \begin{columns}[t]
+    \begin{column}{0.24\linewidth}
+      \begin{block}{Abstract}
+\small{Transferring large-scale genomic data compendia--now intrinsic to cancer research--to local compute facilities has become infeasible. In addition, executing computational workflows over these massive datasets can effectively utilize massively scaleable infrastructures to enhance efficiency and timeliness of results. Here we apply a state-of-the-art transcript and gene quantification method, Salmon (Patro et al. 2017), to 11048 samples from the TCGA and CCLE projects at an average cost of less than \$0.15 per sample. A total of 66.6 TiB of data were processed to produce bias-corrected gene and transcript expression values. Cloud-based infrastructure was built using the Google Cloud Platform. The computational workflows were driven by the cRomwell R package (Davis 2017). Approximately 20,000 compute cores (the equivalent of 40\% of Biowulf) and 5TB of total memory were simultaneously employed on the Google Compute Platform. Resulting raw files were processed further using Apache Spark. To facilitate data mining and downstream analysis, all processed data were loaded into Google BigQuery massively scalable data warehouse. In summary, we have performed large-scale gene expression quantification as a proof-of-concept, scalable, next-generation computational analysis that combines several distributed computing technologies with reproducible and reusable computational research approaches that has yielded a data product that is immediately useful for cancer data science applications over the entire TCGA and CCLE RNA-seq collections.}
+      \end{block}
+      \begin{block}{Available Data Resources}
+        \begin{itemize}
+          \item{Microarray probe, gene, pathway, gene ontology, homology and other annotations} 
+          \item{Online database access to Gene Ontology, KEGG, NCBI, Biomart/Ensembl, UCSC, and many other sources}
+          \item{Experimental data packages including all of TCGA, Pharmacogenomics datsets, LINCS, and 400+ others}
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\linewidth}
+      \begin{block}{Graphical Capabilities of Bioconductor}
+        \begin{columns}[t]
+          \begin{column}{0.33\linewidth}
+          \end{column}
+        \end{columns}
+      \end{block}
+
+ \end{column}
+    \begin{column}{0.24\linewidth}
+      \begin{block}{PrinciplesDesign, and Implementation}
+        \begin{itemize}
+        \item{Open source, open, community-driven development}
+        \item{Reproducible research through strict versioning and literate programming approaches}
+        \item{Statistical rigor}
+        \item{Interoperability through purpose-built, rich data structures}
+        \end{itemize}
+      \end{block}
+      \begin{block}{Design and Implementation}
+        \begin{itemize}
+        \item{Built using the R statistical programming environment}
+        \item{Central infrastructure for code repository and continuous integration and builds}
+        \item{NIH grant funded (NHGRI, NCI)}
+        \item{Comprised of software packages, annotation packages, and experimental data packages}
+        \end{itemize}
+      \end{block}
+      \begin{block}{Data Integration}
+        Use of consistent data structures in the R statistical computing environment allows for complex data integration and multi-assay hypothesis generation and testing.
+      \end{block}
+      \begin{block}{Community, Training, and Education}
+\small{Bioconductor runs training and education programs regularly throughout the year all over the world.  The annual Bioconductor Conference is held in Seattle each summer.  The Bioconductor support site is an interactive and online forum for discussion of Bioconductor software as well as statistical and informatics questions. Extensive online training materials are at the Bioconductor website.}
+      \end{block}
+      \begin{block}{Bioconductor Core Members}
+        \small{Sean Davis (NCI), Vince Carey (Harvard), Wolfgang Huber (EMBL), Rafael Irizarry (Harvard), Levi Waldron (CUNY), Aedin Culhane (Harvard), Michael Lawrence (Genentech), Robert Gentleman (23andMe), and Martin Morgan (Roswell Park C.I.)}
+      \end{block}
+    \end{column}
+    \end{columns}
+  \end{frame}
+\end{document}
