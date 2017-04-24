@@ -1,64 +1,130 @@
 \documentclass[final]{beamer}
 \usetheme{SD}
+\setbeamertemplate{caption}[numbered]
 \usepackage[orientation=landscape,size=custom,width=160,height=90,scale=1.9,debug]{beamerposter}
 %\usepackage[absolute,overlay]{textpos}
 %\setlength{\TPHorizModule}{1cm}
 %\setlength{\TPVertModule}{1cm}
 
 \title{Cloud-Scale Gene Expression Quantification Of Thousands Of Rna-Seq Samples}
-\author{Sean Davis}
-\footer{More information at \texttt{\url{http://bioconductor.org/}}}
+\author{Sean Davis, Center for Cancer Research, National Cancer Institute, NIH}
+\footer{More information at \texttt{\url{https://github.com/seandavi/wdlRunR} and \url{https://seandavi.github.io}}}
 \date{April 24, 2017}
 
 \begin{document}
+
+<<include=FALSE,cache=TRUE>>=
+library(lubridate)
+library(purrr)
+md = Filter(function(x) {x$status=='Succeeded' && x$workflowName=='salmonRun'},readRDS('cromwellMetadata.rds'))
+#df = data.frame(job_id = names(md),
+#                file_id = sapply(md,function(tmp) {return(tmp$calls$salmonRun.salmonQuant[[1]]$inputs$file_id)}))
+@ 
+
+
 \begin{frame}[t]
   \begin{columns}[t]
-    \begin{column}{0.24\linewidth}
+    \begin{column}{0.32\linewidth}
       \begin{block}{Abstract}
-\small{Transferring large-scale genomic data compendia--now intrinsic to cancer research--to local compute facilities has become infeasible. In addition, executing computational workflows over these massive datasets can effectively utilize massively scaleable infrastructures to enhance efficiency and timeliness of results. Here we apply a state-of-the-art transcript and gene quantification method, Salmon (Patro et al. 2017), to 11048 samples from the TCGA and CCLE projects at an average cost of less than \$0.15 per sample. A total of 66.6 TiB of data were processed to produce bias-corrected gene and transcript expression values. Cloud-based infrastructure was built using the Google Cloud Platform. The computational workflows were driven by the cRomwell R package (Davis 2017). Approximately 20,000 compute cores (the equivalent of 40\% of Biowulf) and 5TB of total memory were simultaneously employed on the Google Compute Platform. Resulting raw files were processed further using Apache Spark. To facilitate data mining and downstream analysis, all processed data were loaded into Google BigQuery massively scalable data warehouse. In summary, we have performed large-scale gene expression quantification as a proof-of-concept, scalable, next-generation computational analysis that combines several distributed computing technologies with reproducible and reusable computational research approaches that has yielded a data product that is immediately useful for cancer data science applications over the entire TCGA and CCLE RNA-seq collections.}
+Transferring large-scale genomic data compendia--now intrinsic to cancer research--to local compute facilities has become infeasible. In addition, executing computational workflows over these massive datasets can effectively utilize massively scaleable infrastructures to enhance efficiency and timeliness of results. Here we apply a state-of-the-art transcript and gene quantification method, Salmon (Patro et al. 2017), to 11048 samples from the TCGA and CCLE projects at an average cost of less than \$0.15 per sample. A total of 66.6 TiB of data were processed to produce bias-corrected gene and transcript expression values. Cloud-based infrastructure was built using the Google Cloud Platform. The computational workflows were driven by the cRomwell R package (Davis 2017). Approximately 20,000 compute cores (the equivalent of 40\% of Biowulf) and 5TB of total memory were simultaneously employed on the Google Compute Platform. Resulting raw files were processed further using Apache Spark. To facilitate data mining and downstream analysis, all processed data were loaded into Google BigQuery massively scalable data warehouse. In summary, we have performed large-scale gene expression quantification as a proof-of-concept, scalable, next-generation computational analysis that combines several distributed computing technologies with reproducible and reusable computational research approaches that has yielded a data product that is immediately useful for cancer data science applications over the entire TCGA and CCLE RNA-seq collections.
       \end{block}
-      \begin{block}{Available Data Resources}
-        \begin{itemize}
-          \item{Microarray probe, gene, pathway, gene ontology, homology and other annotations} 
-          \item{Online database access to Gene Ontology, KEGG, NCBI, Biomart/Ensembl, UCSC, and many other sources}
-          \item{Experimental data packages including all of TCGA, Pharmacogenomics datsets, LINCS, and 400+ others}
-        \end{itemize}
+      \begin{block}{Samples by Project}
+
+<<data1,cache=TRUE, echo=FALSE, warning=FALSE, message=FALSE, fig.cap='abc'>>=
+library(bigrquery)
+library(dplyr)
+isb = src_bigquery(project='isb-cgc',dataset='GDC_metadata',billing='isb-cgc-04-0020')
+con = isb$con
+samplesbyproject= dbFetch(dbSendQuery(con,"SELECT count(*) as nsamps,project_short_name,program_name FROM [isb-cgc:GDC_metadata.rel5_legacy_fileData] where program_name IN ('CCLE','TCGA') and experimental_strategy='RNA-Seq' and data_category='Raw sequencing data' group by project_short_name,program_name"))
+library(ggplot2)
+ggplot(samplesbyproject %>% filter(program_name=='TCGA'),aes(x=project_short_name,y=nsamps)) + geom_bar(stat='identity') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+@ 
       \end{block}
     \end{column}
-    \begin{column}{0.48\linewidth}
-      \begin{block}{Graphical Capabilities of Bioconductor}
-        \begin{columns}[t]
-          \begin{column}{0.33\linewidth}
-          \end{column}
-        \end{columns}
-      \end{block}
+    \begin{column}{0.32\linewidth}
+      \begin{block}{Infrastructure and Implementation}
+<<dataflow,echo=FALSE,fig.cap="Data and information flow through the data ecosystem.">>=
+library(DiagrammeR)
+library(webshot)
+grViz('
+digraph boxes_and_circles {
 
+  # a graph statement
+  graph [overlap = true, fontsize = 30]
+
+  # several node statements
+  node [shape = box,
+        style="rounded,bold",
+        fontname = Helvetica,
+        fontsize = 32]
+  BigQuery; "Cloud Storage"; Cromwell; CloudSQL; 
+  "Compute Engine"; wdlRunR; laptop; Spark; Docker
+
+
+  # several edge statements
+  BigQuery -> laptop
+  laptop -> wdlRunR [label = "WDL", fontsize=32]
+  wdlRunR -> Cromwell -> "Google JES"
+  Cromwell -> CloudSQL -> Cromwell
+  "Google JES" -> "Compute Engine"
+  "Google JES" -> "Cromwell"
+  "Cromwell" -> wdlRunR
+  "Cloud Storage" -> "Compute Engine"
+  "Compute Engine" -> "Cloud Storage"
+  "Compute Engine" -> Docker [dir=none]
+  "Cloud Storage" -> "Spark"
+  "Cloud Storage" -> laptop
+  laptop -> "Spark"
+  Spark -> laptop
+  "Spark" -> BigQuery
+
+}
+')
+@
+      \end{block}
+      \begin{block}{Technologies utilized}
+        \begin{itemize}
+        \item{Bigquery: massively scaleable cloud-based database as a service}
+        \item{wdlRunR: R package for orchestrating cloud-scale workflows from R}
+        \item{Cromwell: Server developed by the Broad Institute for managing execution of WDL workflows}
+        \item{CloudSQL: Cloud-based SQL database}
+        \item{Google JES: Google Job Execution Service (JES), also known as Google Genomics API}
+        \item{Docker: Common container technology used to encapsulate workflow steps}
+        \item{Spark: A distributed computing kernel (system) for massive-scale data analysis}
+        \end{itemize}
+      \end{block}      
+      \begin{block}{Conclusion}
+        This work represents a simple proof-of-concept of using a Data Lake to form the basis for a simple Data Commons. Technologies available as services from commercial cloud providers suffice to allow complex, highly-scaleable workflows, data engineering, and can be used to enhance data science.  When combined with lightweight open source software, clouid-scale computing can likely be leveraged by traditional bioinformaticians. 
+        
+        Significant challenges to uptake including costs, security models, training, and policy barriers remain.
+      \end{block}
  \end{column}
-    \begin{column}{0.24\linewidth}
-      \begin{block}{PrinciplesDesign, and Implementation}
+    \begin{column}{0.32\linewidth}
+      \begin{block}{Data Warehouse of Results}
+\includegraphics[width=1\textwidth]{bq.png}
+      \end{block}
+      \begin{block}{Key Concepts and Definitions}
+        \begin{description}
+          \item[Object Storage] 
+            Data are stored as ``objects'' rather than ``files''. However, more important is that such ``object storage'' is implemented in commercial clouds as highly parallel and scales to arbitrary size.
+          \item[Data Lake]  
+            A virtual or physical collection of data objects, typically stored in a flat collection in their native formats (as opposed to loaded to a database).
+          \item[Data Commons] 
+            A shared data ecosystem consisting of \emph{data}, \emph{computing}, and \emph{software and tools}.
+          \item[Containers]
+            A technology that allows lightweight (fast, small) encapsulation of entire computational environments, ideal for ``wrapping'' tools and workflows portably.
+          \item[Application Programming Interface (API)]
+            A set of protocols and tools for allowing software to interact with other software, often impelmented using web technologies.
+        \end{description}
+      \end{block}
+      \begin{block}{Key Online References}
         \begin{itemize}
-        \item{Open source, open, community-driven development}
-        \item{Reproducible research through strict versioning and literate programming approaches}
-        \item{Statistical rigor}
-        \item{Interoperability through purpose-built, rich data structures}
+        \item{https://spark.apache.org}
+        \item{https://cloud.google.com}
+        \item{https://bigquery.cloud.google.com}
+        \item{https://github.com/seandavi/wdlRunR}
+        \item{https://github.com/broadinstitute/wdl}
         \end{itemize}
-      \end{block}
-      \begin{block}{Design and Implementation}
-        \begin{itemize}
-        \item{Built using the R statistical programming environment}
-        \item{Central infrastructure for code repository and continuous integration and builds}
-        \item{NIH grant funded (NHGRI, NCI)}
-        \item{Comprised of software packages, annotation packages, and experimental data packages}
-        \end{itemize}
-      \end{block}
-      \begin{block}{Data Integration}
-        Use of consistent data structures in the R statistical computing environment allows for complex data integration and multi-assay hypothesis generation and testing.
-      \end{block}
-      \begin{block}{Community, Training, and Education}
-\small{Bioconductor runs training and education programs regularly throughout the year all over the world.  The annual Bioconductor Conference is held in Seattle each summer.  The Bioconductor support site is an interactive and online forum for discussion of Bioconductor software as well as statistical and informatics questions. Extensive online training materials are at the Bioconductor website.}
-      \end{block}
-      \begin{block}{Bioconductor Core Members}
-        \small{Sean Davis (NCI), Vince Carey (Harvard), Wolfgang Huber (EMBL), Rafael Irizarry (Harvard), Levi Waldron (CUNY), Aedin Culhane (Harvard), Michael Lawrence (Genentech), Robert Gentleman (23andMe), and Martin Morgan (Roswell Park C.I.)}
       \end{block}
     \end{column}
     \end{columns}
